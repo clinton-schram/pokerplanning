@@ -1,536 +1,591 @@
-# Tech Stack Documentation - Poker Planning App
+# Tech Stack Documentation - Poker Planning App (Lightweight Edition)
 
 ## Overview
-This document outlines the recommended technology stack for building the Poker Planning application. The stack is designed to support real-time multiplayer functionality, responsive UI, efficient state management, and scalability.
+This document outlines a lightweight tech stack designed to deliver a modern, responsive Poker Planning application with minimal dependencies, fast performance, and low operational overhead. The focus is on simplicity, speed, and essential functionality without unnecessary complexity.
+
+## Philosophy
+- **Minimal Dependencies**: Only include libraries that provide clear value
+- **Modern UX**: Leverage modern web standards for smooth interactions
+- **Fast Performance**: Optimize for speed without sacrificing usability
+- **Easy Maintenance**: Simple codebase that's easy to understand and modify
+- **Scalable Simplicity**: Design that grows gracefully without complexity bloat
+
+---
 
 ## Frontend Architecture
 
 ### Framework & UI Library
-- **React 18+** (or Vue 3 / Svelte as alternatives)
-  - Component-based architecture for modular UI
-  - Virtual DOM for efficient rendering and updates
-  - Excellent ecosystem and community support
-  - React Router for client-side routing (room creation, joining, gameplay)
-  - Server-Side Rendering (SSR) capability via Next.js for SEO and performance
+- **Preact 10** (instead of React)
+  - Lightweight React-like alternative (~4KB vs ~42KB for React)
+  - Identical JSX syntax and component model
+  - Excellent performance for interactive UIs
+  - Minimal learning curve for React developers
+  - Compatible with React ecosystem libraries
 
-### Build Tool & Module Bundler
-- **Vite** (recommended) or Webpack
-  - Vite: Fast build times, modern ES modules, excellent dev experience
-  - Hot Module Replacement (HMR) for rapid development iteration
-  - Optimized production builds with tree-shaking
-  - Support for environment variables and configuration
+**Alternative:** Plain vanilla JavaScript with **htmx** for interactivity (ultra-lightweight)
+
+### Build Tool
+- **Vite**
+  - Extremely fast development server (instant HMR)
+  - Minimal configuration needed
+  - Excellent for Preact projects
+  - Production builds optimized automatically
+  - ~20KB overhead (vs Webpack's 100KB+)
+
+### Styling
+- **Pico CSS** (recommended) or **classless CSS framework**
+  - Minimal CSS framework (~10KB)
+  - Semantic HTML automatically looks good
+  - No utility classes to learn
+  - Built-in dark mode support
+  - Responsive by default
+  
+  **Alternative:** Hand-written CSS (5-10KB) for maximum control and minimal overhead
+  
+  **Or:** Tailwind CSS with aggressive purging (for familiar workflow, but larger)
 
 ### State Management
-- **Redux Toolkit** or **Zustand**
-  - Redux Toolkit: Industry standard, powerful devtools, middleware support
-  - Zustand: Lightweight, minimal boilerplate, simpler learning curve
-  - Store centralized app state (room data, team members, votes, reveal status)
-  - Actions for room creation, joining, card selection, reveal/reset
+- **Preact Signals** (built into Preact ecosystem)
+  - Tiny, reactive state management (~2KB)
+  - No boilerplate or middleware
+  - Fine-grained reactivity (only affected components re-render)
+  - Simple to understand and use
+  
+  **Alternative:** Plain Context API if minimal state needed
 
 **State Structure Example:**
 ```javascript
-{
-  rooms: {
-    [roomId]: {
-      id: string,
-      createdAt: timestamp,
-      participants: [{ id, name, selectedCard, hasVoted }],
-      isRevealed: boolean,
-      availableCards: string[]
-    }
-  },
-  currentUser: {
-    name: string,
-    currentRoomId: string | null
-  },
-  ui: {
-    loading: boolean,
-    error: string | null
+import { signal, effect } from '@preact/signals';
+
+// Global state
+export const currentUser = signal({ name: '', currentRoomId: null });
+export const currentRoom = signal(null);
+export const teamMembers = signal([]);
+export const isRevealed = signal(false);
+
+// Derived state
+export const hasVoted = signal(false);
+```
+
+### UI Components
+- **Preact-compatible component library:** (minimal option)
+  - Build custom components (buttons, cards, modals)
+  - ~500 lines of component code instead of large library
+  - Full control over styling and behavior
+  - Zero extra dependencies
+  
+  **Or:** **Shoelace** (web components, framework-agnostic, ~50KB)
+  - Modern component library
+  - Works with any framework
+  - Beautiful default styling
+
+### HTTP Client
+- **Fetch API** (native browser API)
+  - No external dependency needed
+  - Lightweight wrapper for error handling
+  
+**Simple fetch wrapper example:**
+```javascript
+async function api(path, options = {}) {
+  const response = await fetch(`/api${path}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  if (!response.ok) throw new Error(response.statusText);
+  return response.json();
+}
+```
+
+### Real-Time Communication
+- **Native WebSocket API** with Socket.IO as optional enhancement
+  - Lightweight direct WebSocket (~2KB for wrapper)
+  - No dependency on Socket.IO library (~50KB)
+  - Simple event emitter pattern for client-side
+  
+  **Alternative:** **Socket.IO** if fallback compatibility needed (~50KB total)
+
+**WebSocket wrapper example:**
+```javascript
+class RoomSocket {
+  constructor(roomId) {
+    this.ws = new WebSocket(`wss://api.example.com/rooms/${roomId}`);
+    this.listeners = {};
+    this.ws.onmessage = e => {
+      const { event, data } = JSON.parse(e.data);
+      this.listeners[event]?.forEach(cb => cb(data));
+    };
+  }
+
+  on(event, callback) {
+    this.listeners[event] = this.listeners[event] || [];
+    this.listeners[event].push(callback);
+  }
+
+  emit(event, data) {
+    this.ws.send(JSON.stringify({ event, data }));
   }
 }
 ```
 
-### Styling & CSS
-- **Tailwind CSS** (recommended) or Styled Components
-  - Tailwind CSS: Utility-first approach, consistent design, minimal CSS size
-  - Pre-built components library (Headless UI, shadcn/ui)
-  - Responsive design utilities for mobile/tablet/desktop
-  - Dark mode support out-of-the-box
-  
-  **Alternative:** Styled Components for CSS-in-JS approach
+### Browser Storage
+- **localStorage API** (native browser API)
+  - No dependency needed
+  - Perfect for name caching
+  - Simple key-value storage
 
-### UI Component Libraries
-- **shadcn/ui** or **Headless UI**
-  - Pre-built, accessible, unstyled components
-  - Modal/dialog for name entry
-  - Button, card, input components
-  - Dialog for room creation/joining flows
-
-### Form Management
-- **React Hook Form**
-  - Lightweight form handling
-  - Validation with Zod or Yup
-  - Minimal re-renders
-  - Better performance than Formik
-
-### HTTP Client
-- **Axios** or **Fetch API** with wrapper
-  - API calls to backend (room creation, joining, submitting votes)
-  - Error handling and retry logic
-  - Request/response interceptors
-
-### WebSocket Client (for real-time multiplayer)
-- **Socket.IO Client** or **Native WebSocket API**
-  - Real-time updates when members join/leave
-  - Live vote count and card reveals
-  - Automatic reconnection handling
-  - Broadcasting vote changes to all room participants
+**Total Frontend Bundle Size Target: 80-120KB gzipped**
+- Preact: ~4KB
+- Vite runtime: ~2KB
+- Pico CSS: ~10KB
+- Application code: ~20-30KB
+- Socket wrapper: ~2KB
+- Other dependencies: ~40-50KB
 
 ---
 
 ## Backend Architecture
 
-### Runtime & Server Framework
-- **Node.js + Express** (recommended) or **FastAPI (Python)**
-  - Node.js + Express: JavaScript full-stack, excellent async support, large ecosystem
-  - FastAPI: Python performance, async support, automatic API documentation
-  - Alternative: Next.js API Routes for fullstack JavaScript/React solution
+### Runtime & Framework
+- **Node.js with Hono** or **Express (minimal)**
+  - Hono: Ultra-lightweight framework (~14KB), built for edge computing
+  - Express: Familiar, ~50KB with middleware
+  - TypeScript support for both
+  - Minimal boilerplate
+  
+  **Alternative:** **Fastify** for better performance, lighter than Express
 
 ### Language
-- **TypeScript**
-  - Type safety for server-side code
-  - Better IDE support and refactoring
-  - Catches errors at compile-time rather than runtime
-  - Improved code maintainability and documentation
+- **TypeScript (with strict mode)**
+  - Static type safety
+  - Better IDE support
+  - Zero runtime overhead
+  - Strict null checking
 
-### API Architecture
-- **RESTful API** with optional GraphQL
-  - RESTful endpoints:
-    - `POST /api/rooms` - Create a new room
-    - `GET /api/rooms/:roomId` - Get room details
-    - `POST /api/rooms/:roomId/join` - Join a room
-    - `POST /api/rooms/:roomId/vote` - Submit a vote
-    - `POST /api/rooms/:roomId/reveal` - Reveal all votes
-    - `POST /api/rooms/:roomId/reset` - Reset votes
-    - `DELETE /api/rooms/:roomId/members/:memberId` - Remove member
-  
-  - Alternative: GraphQL for flexible querying and subscriptions for real-time updates
+### API Design
+- **RESTful JSON API** (simple and proven)
+  - No GraphQL complexity
+  - Stateless design
+  - Standard HTTP methods and status codes
+
+**Minimal Endpoints:**
+```
+POST   /api/rooms              - Create room
+GET    /api/rooms/:roomId      - Get room state
+POST   /api/rooms/:roomId/join - Join room with name
+POST   /api/rooms/:roomId/vote - Submit vote
+POST   /api/rooms/:roomId/reveal - Reveal votes
+POST   /api/rooms/:roomId/reset  - Reset round
+WS     /ws/rooms/:roomId       - WebSocket connection
+```
 
 ### Real-Time Communication
-- **Socket.IO** (recommended) or **WebSocket**
-  - Bi-directional communication between client and server
-  - Event-driven architecture (vote submitted, reveal triggered, user joined, etc.)
-  - Automatic fallback to polling if WebSocket unavailable
-  - Room-based namespacing for managing multiple concurrent rooms
+- **Native WebSocket** (built into Node.js)
+  - Lightweight implementation
+  - No Socket.IO overhead
+  - ~100 lines of code for room management
   
-  **Socket.IO Events:**
-  - `room:user-joined` - User joins room
-  - `room:user-left` - User leaves room
-  - `vote:submitted` - User submits their vote
-  - `vote:revealed` - Reveal votes
-  - `vote:reset` - Reset voting round
-  - `error:room-not-found` - Room doesn't exist
+  **Alternative:** **ws** library (~50KB) for cleaner API if needed
+
+**Room WebSocket example:**
+```javascript
+const wss = new WebSocketServer({ noServer: true });
+
+wss.on('connection', (ws, req, roomId) => {
+  ws.on('message', (data) => {
+    const { event, payload } = JSON.parse(data);
+    broadcastToRoom(roomId, { event, payload });
+  });
+});
+
+function broadcastToRoom(roomId, message) {
+  rooms[roomId]?.participants?.forEach(participant => {
+    if (participant.ws?.readyState === WebSocket.OPEN) {
+      participant.ws.send(JSON.stringify(message));
+    }
+  });
+}
+```
 
 ### Database
-- **PostgreSQL** (recommended) or **MongoDB**
-  - PostgreSQL: Relational data, ACID transactions, strong consistency
-  - MongoDB: Flexible schema for room documents, easier horizontal scaling
+- **SQLite with better-sqlite3** (for small-medium scale)
+  - Minimal setup, no server needed
+  - Perfect for single-server deployments
+  - File-based persistence
+  - ACID compliance
+  - Simple backups (just copy file)
   
-  **Schema Design:**
-  ```sql
-  -- Rooms table
-  CREATE TABLE rooms (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    is_active BOOLEAN DEFAULT true
+  **Scale up to:** PostgreSQL only if needing true horizontal scaling
+
+**Alternative:** **PostgreSQL 14+** if expecting high concurrency
+  - ACID transactions
+  - Better for multi-server deployments
+  - More robust but more overhead
+
+### ORM
+- **Drizzle ORM** (lightweight, ~30KB)
+  - Type-safe queries
+  - No decorators or magical conventions
+  - Works with SQLite and PostgreSQL
+  - Minimal bundle impact
+  
+  **Alternative:** Hand-written SQL queries (~100 lines) for maximum control and zero dependencies
+
+**Minimal Schema Example:**
+```typescript
+import { sql, Database } from 'better-sqlite3';
+
+const db = new Database('poker.db');
+
+// Create tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS rooms (
+    id TEXT PRIMARY KEY,
+    created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT 1
   );
-  
-  -- Participants table
-  CREATE TABLE participants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
-    name VARCHAR(255) NOT NULL,
-    selected_card VARCHAR(50),
-    has_voted BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+
+  CREATE TABLE IF NOT EXISTS participants (
+    id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    selected_card TEXT,
+    has_voted BOOLEAN DEFAULT 0,
+    FOREIGN KEY(room_id) REFERENCES rooms(id)
   );
+`);
+```
+
+### Optional Caching
+- **No caching layer needed initially**
+  - SQLite or PostgreSQL is fast enough for single/dual server
+  - Add Redis only if monitoring shows need
+  - Start simple, scale when data shows necessity
+
+### Validation
+- **Zod** (~15KB) or **no external validation**
+  - Lightweight schema validation
+  - TypeScript integration
   
-  -- Voting history table (optional)
-  CREATE TABLE voting_rounds (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
-    round_number INTEGER NOT NULL,
-    results JSONB,
-    revealed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW()
-  );
-  ```
+  **Alternative:** Manual validation (~50 lines) for absolutely minimal overhead
 
-### ORM (Object-Relational Mapping)
-- **Prisma** (recommended) or **TypeORM**
-  - Prisma: Type-safe queries, automatic migrations, excellent DX
-  - TypeORM: Full-featured, decorators for schema definition
-  - Database agnostic (works with PostgreSQL, MySQL, SQLite)
+### Error Handling
+- Simple try/catch with structured errors
+- Consistent error response format
+- Minimal logging (stdout only, captured by container logs)
 
-### Authentication & Authorization
-- **JWT (JSON Web Tokens)** for stateless authentication
-  - Access tokens for API requests
-  - Refresh tokens for long-lived sessions
-  - Optional: Implement OAuth2 for social login
-  
-  Alternative: Session-based authentication with secure cookies
+### Middleware (Keep Minimal)
+- Only essential middleware:
+  - CORS (built-in or 2KB library)
+  - Body parser (Express built-in)
+  - Compression (built-in)
+  - No logging, no rate limiting until needed
 
-### Validation & Error Handling
-- **Joi** or **Yup** or **Zod**
-  - Schema validation for API requests
-  - Consistent error messages
-  - Type inference in TypeScript
-
-### Middleware
-- **CORS (Cross-Origin Resource Sharing)** middleware
-- **Helmet.js** for security headers
-- **Morgan** for HTTP request logging
-- **Compression** middleware for response compression
-- **Rate limiting** to prevent abuse
-
-### Environment Management
-- **.env files** with dotenv or similar
-- Configuration management for development, staging, production
-- Secret management for API keys, database credentials
+**Total Backend Size: 2-5MB with dependencies**
+- Node.js base image: ~150MB (Docker slim base)
+- Dependencies: ~500MB (npm node_modules)
+- Application code: ~50KB
 
 ---
 
-## Database Layer
+## Database
 
 ### Primary Database
-- **PostgreSQL 14+**
-  - Reliable ACID transactions
-  - JSON support for flexible data structures (voting results)
-  - Full-text search if needed for future features
-  - Excellent scaling characteristics
+**Option A: SQLite (Recommended for simplicity)**
+- File-based, zero configuration
+- Perfect for single-server deployment
+- Scales to 100K+ rooms without issue
+- Automatic backups (copy file)
+- Works great on VPS or single container
 
-### Optional Caching Layer
-- **Redis**
-  - In-memory cache for active rooms and session data
-  - Pub/Sub for real-time events between server instances
-  - Session storage for authentication
-  - Rate limiting state
-  - Temporary storage for active voting rounds
+**Option B: PostgreSQL (Recommended for scale)**
+- Use only if expecting 1M+ rooms or high concurrency
+- More operational overhead (maintenance, backups, monitoring)
+- Better for distributed deployments
 
-**Redis Data Structure Examples:**
-```
-room:{roomId}:data -> Hash with room metadata
-room:{roomId}:participants -> Set of participant IDs
-participant:{participantId} -> Hash with participant details
-room:{roomId}:votes -> Hash with current votes
-```
-
-### Connection Pooling
-- **PgBouncer** for PostgreSQL connection pooling
-- Manages connections between application and database
+### No Caching Layer
+- Start without Redis
+- Database queries are fast enough
+- Add Redis only when metrics show necessity
+- Monitor query performance
 
 ---
 
-## Development Tools & Workflow
+## Development Tools
 
 ### Version Control
-- **Git** with GitHub
-  - Feature branches, pull requests, code review workflow
-  - Branch protection rules
+- **Git + GitHub**
+  - Standard workflow
 
 ### Package Management
-- **npm** or **yarn** or **pnpm**
-  - Dependency management
-  - Lock files for reproducible builds
-  - Script automation
+- **npm** or **pnpm**
+  - pnpm is faster and more efficient
+  - Better monorepo support if needed later
 
-### Testing Framework
-- **Jest** (recommended) for unit and integration tests
-  - Snapshot testing for UI components
-  - Mock support for API calls and Socket.IO
-  - Coverage reporting
+### Testing
+- **Vitest** (~10MB with dependencies)
+  - Lightning-fast test runner
+  - Jest-compatible syntax
+  - Zero-config for Vite projects
   
-  - **Vitest** as lightweight alternative
+  **Tests needed:**
+  - API endpoint tests (~50 lines each)
+  - WebSocket message flow tests (~30 lines each)
+  - UI component interaction tests (~40 lines each)
+  
+  **Skip:** E2E testing initially, use manual testing + monitoring
 
-### Component Testing
-- **React Testing Library** or **Cypress**
-  - Testing user interactions in React components
-  - End-to-end testing with Cypress
-  - Accessibility testing with jest-axe
-
-### E2E Testing
-- **Cypress** or **Playwright**
-  - Browser automation for full application testing
-  - Visual regression testing
-  - Test scenarios like room creation, joining, voting, reveal
-
-### Linting & Code Quality
-- **ESLint**
-  - JavaScript/TypeScript code quality
-  - Automatic fixing with `--fix` flag
-  - Enforce coding standards
-
-- **Prettier**
-  - Code formatting
-  - Consistent code style across project
-
-- **Pre-commit Hooks**
-  - Husky: Git hooks framework
-  - lint-staged: Run linters on staged files
-  - Prevent commits with linting errors
+### Linting & Formatting
+- **Biome** (~50MB)
+  - Lightning-fast linter + formatter
+  - Single tool replaces ESLint + Prettier
+  - Minimal config
+  
+  **Alternative:** Just use Prettier if minimizing tooling
 
 ### Type Checking
-- **TypeScript**
-  - Static type checking for JavaScript
+- **TypeScript compiler** (included)
   - Strict mode enabled
-  - Type definitions for all packages
+  - Check during build
 
 ### Documentation
-- **Storybook** (optional)
-  - Component documentation and showcase
-  - Interactive component development environment
-
-- **Swagger/OpenAPI** for API documentation
-  - Auto-generated from JSDoc or schema definitions
-  - Interactive API explorer
+- **README.md + inline comments**
+  - No need for Storybook or Swagger initially
+  - Simple implementation examples in code
 
 ---
 
 ## Deployment & Infrastructure
 
-### Backend Hosting
-- **Docker** containerization
-  - Consistent environment across development, staging, production
-  - Easy scaling with container orchestration
-  
-  **Dockerfile example:**
-  ```dockerfile
-  FROM node:18-alpine
-  WORKDIR /app
-  COPY package*.json ./
-  RUN npm ci --only=production
-  COPY . .
-  EXPOSE 3000
-  CMD ["npm", "start"]
-  ```
+### Containerization
+- **Docker** (essential even for single-server)
+  - Lightweight Node.js image (~180MB)
+  - Slim or Alpine base for minimal size
 
-- **Container Orchestration:**
-  - Kubernetes for production-grade deployment
-  - Docker Compose for local development
-  - AWS ECS / Google Cloud Run for serverless options
+**Minimal Dockerfile:**
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["node", "dist/server.js"]
+```
 
-### Hosting Platforms
-- **Heroku**, **Railway**, **Render** for simple deployment
-- **AWS** (EC2, ECS, Elastic Beanstalk) for scalability
-- **Google Cloud Platform** (App Engine, Cloud Run)
-- **DigitalOcean** App Platform for cost-effective hosting
-- **Vercel/Netlify** for frontend, separate backend hosting
+### Hosting Options (Minimal Operations)
+**Option A: Simple VPS (~$5-10/month)**
+- DigitalOcean Droplet (1GB RAM, 1 vCPU)
+- Linode, Vultr, or Hetzner
+- Docker Compose for container management
+- Manual deployment or simple CI/CD
+
+**Option B: Platform-as-a-Service**
+- **Railway.app** (~$5-20/month)
+  - Simple deployment, automatic SSL
+  - Great for small apps
+  - Good free tier
+- **Render.com** (similar to Railway)
+- **Fly.io** (good performance)
+
+**Option C: Serverless (avoid initially)**
+- Higher costs for small/medium apps
+- Overkill complexity for this use case
+- Stick with traditional VPS/PaaS
 
 ### Frontend Hosting
-- **Vercel** (Next.js optimized, serverless functions)
-- **Netlify** (static sites, serverless functions)
-- **AWS S3 + CloudFront** (CDN distribution)
-- **GitHub Pages** (static content only)
+- **Vercel** (free for public repos)
+  - Optimized for frontend
+  - Automatic deployments
+  - Global CDN
+- **Netlify** (free tier available)
+- **GitHub Pages** + backend API separately
 
 ### CI/CD Pipeline
-- **GitHub Actions** (recommended for GitHub repositories)
-  - Automated testing on pull requests
-  - Automated deployment to staging/production
-  - Linting and type checking
-  - Automated versioning and releases
+- **GitHub Actions** (free)
+  - Minimal workflow configuration
+  
+**Simple workflow:**
+```yaml
+name: Deploy
+on: [push]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with: { node-version: '20' }
+      - run: npm ci && npm run build && npm test
+      - run: docker build -t app:latest .
+      - run: docker push registry.example.com/app:latest
+```
 
-  **Workflow Steps:**
-  - Checkout code
-  - Install dependencies
-  - Run linting and type check
-  - Run tests
-  - Build Docker image
-  - Push to registry
-  - Deploy to production
+### Monitoring (Keep Minimal)
+- **No external monitoring initially**
+  - Use container logs (stdout)
+  - Monitor from hosting provider dashboard
+  
+- **Add only if needed:**
+  - Basic health checks (/health endpoint)
+  - Error tracking: Sentry free tier
+  - Uptime monitoring: UptimeRobot free tier
 
-### Monitoring & Logging
-- **Sentry** for error tracking and performance monitoring
-- **LogRocket** for session replay and debugging
-- **DataDog** or **New Relic** for comprehensive monitoring
-- **ELK Stack** (Elasticsearch, Logstash, Kibana) for log aggregation
-- **Prometheus + Grafana** for metrics and alerting
-
-### Performance Optimization
-- **CDN** for static assets (Cloudflare, AWS CloudFront)
-- **Image optimization** (lazy loading, next-gen formats)
-- **Code splitting** and lazy loading of components
-- **Database query optimization** and indexing
-- **Caching strategies** (HTTP caching, Redis)
+### Performance Targets
+- **Frontend Load:** < 2 seconds
+- **First Contentful Paint:** < 1.5 seconds
+- **Bundle Size:** 100KB gzipped max
+- **API Response:** < 100ms p95
+- **WebSocket Latency:** < 50ms
 
 ---
 
-## Security Considerations
-
-### Frontend Security
-- **Content Security Policy (CSP)** headers
-- **XSS Prevention** through proper escaping and sanitization
-- **CSRF tokens** for form submissions
-- **Secure localStorage usage** for non-sensitive data only
-
-### Backend Security
-- **HTTPS/TLS** encryption for all communications
-- **CORS** configuration to prevent unauthorized cross-origin requests
-- **Rate limiting** to prevent brute force and DoS attacks
-- **Input validation** and sanitization on all endpoints
-- **SQL injection prevention** through parameterized queries (ORM handles this)
-- **Authentication** via JWT with secure secret management
-- **Authorization** checks to ensure users can only access their rooms
-
-### Database Security
-- **Encrypted connections** to database
-- **Row-level security** if using PostgreSQL
-- **Backup and recovery** procedures
-- **Regular security audits** and vulnerability scanning
-
-### Dependency Security
-- **Dependabot** for automated dependency updates
-- **npm audit** for vulnerability scanning
-- **Snyk** for continuous vulnerability monitoring
-
----
-
-## Development Setup
-
-### Prerequisites
-- Node.js 18+ LTS
-- PostgreSQL 14+
-- Redis (optional, for caching)
-- Docker & Docker Compose (for containerized development)
-
-### Local Development Environment
-```bash
-# Clone repository
-git clone https://github.com/clinton-schram/pokerplanning.git
-cd pokerplanning
-
-# Install dependencies
-npm install
-
-# Setup environment variables
-cp .env.example .env.local
-
-# Start PostgreSQL and Redis with Docker
-docker-compose up -d
-
-# Run database migrations
-npm run migrate
-
-# Start development server
-npm run dev
-```
-
-### Environment Variables
-```
-# Backend
-DATABASE_URL=postgresql://user:password@localhost:5432/pokerplanning
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your-secret-key
-NODE_ENV=development
-PORT=3000
-SOCKET_IO_PORT=3001
-
-# Frontend
-REACT_APP_API_URL=http://localhost:3000/api
-REACT_APP_WS_URL=http://localhost:3001
-```
-
----
-
-## Performance Metrics & Targets
+## Security (Lightweight Approach)
 
 ### Frontend
-- **Page Load Time**: < 3 seconds
-- **Time to Interactive (TTI)**: < 2.5 seconds
-- **Lighthouse Score**: > 90
-- **Bundle Size**: < 200KB (gzipped)
+- Content Security Policy headers
+- HTTPS only (automatic with most hosting)
+- No sensitive data in localStorage except username
 
 ### Backend
-- **API Response Time**: < 200ms (p95)
-- **Database Query Time**: < 50ms (p95)
-- **WebSocket message latency**: < 100ms
-- **Uptime Target**: 99.9%
+- HTTPS/TLS (automatic with most hosting)
+- Basic CORS configuration
+- Input validation with Zod
+- No authentication initially (rooms are public links)
+  - Add JWT later if needed
+
+### Database
+- Encrypted connections (default in most setups)
+- Regular backups to separate storage
+
+### Dependency Security
+- **Dependabot** automated updates
+- `npm audit` before deployment
+- Minimal dependencies reduce attack surface
 
 ---
 
-## Scalability Considerations
+## Lightweight Tech Stack Summary
 
-### Horizontal Scaling
-- Load balancer (Nginx, HAProxy) for distributing traffic
-- Multiple Node.js instances behind load balancer
-- Redis for shared session/cache across instances
-- WebSocket sticky sessions to maintain Socket.IO connections
+### Frontend
+```
+Preact (4KB) + Vite + Pico CSS (10KB) + Signals = 
+Fast, modern, lightweight UX (~100KB gzipped total)
+```
 
-### Database Scaling
-- Read replicas for scaling read operations
-- Connection pooling with PgBouncer
-- Database sharding if room data becomes very large
-- Query optimization and proper indexing
+### Backend
+```
+Hono/Express + TypeScript + SQLite + WebSocket =
+Simple, maintainable, single-server deployment
+```
 
-### Real-Time Features Scaling
-- Redis Pub/Sub for broadcasting to multiple instances
-- Socket.IO adapter for Redis to sync events across servers
-- Message queuing (Bull, RabbitMQ) for background jobs
+### Deployment
+```
+Docker + GitHub Actions + VPS/Railway =
+Simple, low-cost, easy to manage
+```
 
----
-
-## Alternative Tech Stack Options
-
-### Option 1: Python Backend
-- **FastAPI** or **Django** for backend
-- **PostgreSQL** for database
-- **Socket.IO** or native WebSocket with `python-socketio`
-- Better for data science integrations in future
-
-### Option 2: Fullstack TypeScript with Next.js
-- **Next.js 13+** with App Router
-- **Prisma** for database ORM
-- **tRPC** or **GraphQL** for API
-- **Socket.IO** for real-time
-- Simplified deployment and shared language across stack
-
-### Option 3: Serverless Architecture
-- **AWS Lambda** for backend functions
-- **AWS API Gateway** for routing
-- **AWS DynamoDB** for database
-- **AWS AppSync** or Lambda + WebSocket API for real-time
-- **Vercel** for frontend
-- Cost-effective for variable workloads but harder to maintain
+### Total Infrastructure Cost
+- **Development:** Free (GitHub, local machine)
+- **Production:** $5-20/month (VPS) or free-$50/month (PaaS)
+- **Database:** Free (SQLite) or included (PaaS)
+- **Monitoring:** Free (provider logs) or $20-50/month (optional Sentry)
 
 ---
 
-## Recommended Final Stack
+## Recommended Lightweight Stack
 
-**Frontend:**
-- React 18 + TypeScript
-- Vite for build tooling
-- Tailwind CSS for styling
-- shadcn/ui for components
-- Redux Toolkit for state management
-- Socket.IO Client for real-time
+### Frontend
+- **Preact 10** + TypeScript
+- **Vite** for build tooling
+- **Pico CSS** for styling (or hand-written CSS)
+- **Preact Signals** for state management
+- **Native Fetch API** for HTTP
+- **Native WebSocket API** for real-time
+- **Total bundle: ~100KB gzipped**
 
-**Backend:**
-- Node.js + Express with TypeScript
-- PostgreSQL for primary database
-- Redis for caching and pub/sub
-- Socket.IO for real-time communication
-- Prisma for ORM
-- JWT for authentication
+### Backend
+- **Hono** + TypeScript (or Node.js/Express)
+- **SQLite** with better-sqlite3 (or PostgreSQL if scaling)
+- **Native WebSocket** for real-time
+- **Zod** for validation
+- **Vitest** for testing
 
-**DevOps:**
-- Docker & Docker Compose for containerization
-- GitHub Actions for CI/CD
-- Vercel for frontend hosting
-- AWS/DigitalOcean for backend hosting
+### Deployment
+- **Docker** containerization
+- **GitHub Actions** for CI/CD
+- **Railway.app** or DigitalOcean VPS for hosting
+- **GitHub Pages** for frontend
+- **Sentry free tier** for error tracking (optional)
 
-**Development:**
-- Jest & React Testing Library for testing
-- ESLint & Prettier for code quality
-- Husky & lint-staged for pre-commit hooks
-- Sentry for error tracking
+### Development Tools
+- **Biome** for linting/formatting
+- **TypeScript** for type safety
+- **Vitest** for unit tests
+- **Minimal pre-commit hooks** (just formatter check)
+
+### Performance Characteristics
+- **Initial Load:** 1-2 seconds
+- **Bundle Size:** 100KB gzipped
+- **Time to Interactive:** <1.5 seconds
+- **API Latency:** 30-100ms
+- **WebSocket Connect:** <50ms
+- **Memory Usage:** 50-100MB per process
+- **Monthly Cost:** $5-20
+
+---
+
+## When to Add Complexity
+
+Only add the following when you have metrics showing need:
+
+| Feature | Add When |
+|---------|----------|
+| Redis | Database queries > 50ms at peak |
+| PostgreSQL | > 100K concurrent users |
+| Logging (ELK) | > 1000 errors/day |
+| Rate Limiting | > 100 requests/second per user |
+| API Gateway | > 2 backend instances |
+| CDN | > 1000 requests/second globally |
+| Authentication | Multiple user roles needed |
+| Advanced Analytics | Using data for business decisions |
+
+---
+
+## Migration Path (If Needed)
+
+As the app grows, migrate incrementally:
+
+1. **0-1K rooms:** SQLite + single VPS
+2. **1K-10K rooms:** PostgreSQL + single VPS
+3. **10K-100K rooms:** PostgreSQL + 2 backend instances + load balancer
+4. **100K+ rooms:** PostgreSQL + 3+ instances + Redis + CDN
+
+Each step is optional and only needed when current setup shows bottlenecks.
+
+---
+
+## Competitive UX While Staying Lightweight
+
+### Modern Interactions (Minimal Code)
+```javascript
+// Smooth transitions with Web Animations API
+element.animate([{ opacity: 0 }, { opacity: 1 }], 300);
+
+// Responsive design with CSS Grid
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+
+// Instant feedback on button clicks
+button.addEventListener('click', () => {
+  button.style.transform = 'scale(0.95)';
+  setTimeout(() => button.style.transform = '', 100);
+});
+```
+
+### Progressive Enhancement
+- Core functionality works without JavaScript
+- WebSocket connection optional (fallback to polling)
+- Graceful degradation on older browsers
+- Mobile-first responsive design
+
+This approach delivers a competitive, modern UX without the bloat of heavy frameworks.
