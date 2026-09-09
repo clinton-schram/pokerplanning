@@ -49,7 +49,8 @@ export function createApp(store = new RoomStore()) {
 
   app.onError((error, context) => {
     if (error instanceof RoomStoreError) {
-      return context.json({ error: error.message }, error.status)
+      context.status(error.status === 404 ? 404 : 400)
+      return context.json({ error: error.message })
     }
 
     if (error instanceof z.ZodError) {

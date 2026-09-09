@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { createApp } from './app.js'
 import { RoomStore } from './roomStore.js'
