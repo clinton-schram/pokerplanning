@@ -4,7 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-    command: node build/server/index.js
     environment:
       NODE_ENV: production
       PORT: 3000
