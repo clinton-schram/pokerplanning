@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import './app.css'
 import {
   createRoom,
@@ -38,6 +38,10 @@ export function App() {
   const [userName, setUserName] = useState(() => getCachedUserName() ?? '')
   const [nameDraft, setNameDraft] = useState(() => getCachedUserName() ?? '')
   const [creatingRoom, setCreatingRoom] = useState(false)
+  const [activeAction, setActiveAction] = useState<'reveal' | 'reset' | null>(null)
+  const [recentlyChangedParticipantIds, setRecentlyChangedParticipantIds] = useState<string[]>([])
+  const previousRoomRef = useRef<Room | null>(null)
+  const changeTimerRef = useRef<number | null>(null)
 
   const requiresName = roomId !== null && !userName
   const hasVotes = room?.participants.some((participant) => participant.hasVoted) ?? false
@@ -45,6 +49,11 @@ export function App() {
     () => room?.participants.find((participant) => participant.id === participantId) ?? null,
     [room, participantId],
   )
+  const changedParticipantIds = useMemo(
+    () => new Set(recentlyChangedParticipantIds),
+    [recentlyChangedParticipantIds],
+  )
+  const roomActionsDisabled = activeAction !== null
 
   useEffect(() => {
     const onPopState = () => {
@@ -100,6 +109,61 @@ export function App() {
       window.clearInterval(timer)
     }
   }, [roomId])
+
+  useEffect(() => {
+    if (!room) {
+      previousRoomRef.current = null
+      setRecentlyChangedParticipantIds([])
+      if (changeTimerRef.current !== null) {
+        window.clearTimeout(changeTimerRef.current)
+        changeTimerRef.current = null
+      }
+      return
+    }
+
+    const previousRoom = previousRoomRef.current
+    previousRoomRef.current = room
+
+    if (!previousRoom || previousRoom.id !== room.id) {
+      setRecentlyChangedParticipantIds([])
+      return
+    }
+
+    const changedIds = room.participants
+      .filter((participant) => {
+        const previousParticipant = previousRoom.participants.find(
+          (candidate) => candidate.id === participant.id,
+        )
+
+        return (
+          !previousParticipant ||
+          previousParticipant.hasVoted !== participant.hasVoted ||
+          previousParticipant.selectedCard !== participant.selectedCard ||
+          previousRoom.isRevealed !== room.isRevealed
+        )
+      })
+      .map((participant) => participant.id)
+
+    if (!changedIds.length) return
+
+    setRecentlyChangedParticipantIds(changedIds)
+    if (changeTimerRef.current !== null) {
+      window.clearTimeout(changeTimerRef.current)
+    }
+    changeTimerRef.current = window.setTimeout(() => {
+      setRecentlyChangedParticipantIds([])
+      changeTimerRef.current = null
+    }, 900)
+  }, [room])
+
+  useEffect(
+    () => () => {
+      if (changeTimerRef.current !== null) {
+        window.clearTimeout(changeTimerRef.current)
+      }
+    },
+    [],
+  )
 
   const navigateToRoom = (nextRoomId: string) => {
     window.history.pushState({}, '', `/room/${nextRoomId}`)
@@ -165,24 +229,30 @@ export function App() {
   }
 
   const onReveal = async () => {
-    if (!roomId) return
+    if (!roomId || roomActionsDisabled) return
+    setActiveAction('reveal')
     try {
       const response = await revealRoom(roomId)
       setRoom(response.room)
       setError(null)
     } catch (revealError) {
       setError(revealError instanceof Error ? revealError.message : 'Unable to reveal votes.')
+    } finally {
+      setActiveAction(null)
     }
   }
 
   const onReset = async () => {
-    if (!roomId) return
+    if (!roomId || roomActionsDisabled) return
+    setActiveAction('reset')
     try {
       const response = await resetRoom(roomId)
       setRoom(response.room)
       setError(null)
     } catch (resetError) {
       setError(resetError instanceof Error ? resetError.message : 'Unable to reset round.')
+    } finally {
+      setActiveAction(null)
     }
   }
 
@@ -266,7 +336,9 @@ export function App() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span>{participant.hasVoted ? 'Voted' : 'Pending'}</span>
+                  <span class={changedParticipantIds.has(participant.id) ? 'status updated' : 'status'}>
+                    {participant.hasVoted ? 'Voted' : 'Pending'}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -303,11 +375,17 @@ export function App() {
                   <tr key={participant.id}>
                     <th scope="row">{participant.name}</th>
                     <td>
-                      {!participant.hasVoted
-                        ? 'Not voted'
-                        : room.isRevealed
-                          ? participant.selectedCard
-                          : 'Hidden'}
+                      <span
+                        class={`result-value ${
+                          !participant.hasVoted ? 'pending' : room.isRevealed ? 'revealed' : 'hidden'
+                        }${changedParticipantIds.has(participant.id) ? ' updated' : ''}`}
+                      >
+                        {!participant.hasVoted
+                          ? 'Not voted'
+                          : room.isRevealed
+                            ? participant.selectedCard
+                            : 'Hidden'}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -316,11 +394,21 @@ export function App() {
           </section>
 
           <section class="actions">
-            <button type="button" onClick={() => void onReveal()} disabled={!hasVotes}>
-              Reveal
+            <button
+              type="button"
+              class={activeAction === 'reveal' ? 'action-button is-busy' : 'action-button'}
+              onClick={() => void onReveal()}
+              disabled={!hasVotes || roomActionsDisabled}
+            >
+              {activeAction === 'reveal' ? 'Revealing...' : 'Reveal'}
             </button>
-            <button type="button" onClick={() => void onReset()}>
-              Reset
+            <button
+              type="button"
+              class={activeAction === 'reset' ? 'action-button is-busy' : 'action-button'}
+              onClick={() => void onReset()}
+              disabled={roomActionsDisabled}
+            >
+              {activeAction === 'reset' ? 'Resetting...' : 'Reset'}
             </button>
           </section>
         </>
