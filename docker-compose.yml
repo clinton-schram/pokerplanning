@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       target: production
     environment:
+      HOST: 0.0.0.0
       NODE_ENV: production
       PORT: 3000
     ports:

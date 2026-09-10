@@ -62,6 +62,8 @@ docker compose up -d
 
 Then open http://localhost:3000 by default.
 
+The Compose service sets `HOST=0.0.0.0` in the container so the app is reachable from your machine.
+
 If you use the legacy Compose CLI, `docker-compose up -d` works with the included `docker-compose.yml` file.
 
 To use a different host port:
