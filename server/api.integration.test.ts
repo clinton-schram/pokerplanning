@@ -84,6 +84,9 @@ describe('Poker planning API integration', () => {
 
       const missingAssetResponse = await app.request('/assets/missing.js')
       expect(missingAssetResponse.status).toBe(404)
+
+      const unknownRouteResponse = await app.request('/unknown')
+      expect(unknownRouteResponse.status).toBe(404)
     } finally {
       await rm(clientBuildRoot, { recursive: true, force: true })
     }

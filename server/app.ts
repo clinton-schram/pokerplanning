@@ -14,6 +14,10 @@ const voteSchema = z.object({
   card: z.string(),
 })
 
+function isFrontendRoute(path: string) {
+  return path === '/' || /^\/room\/[A-Z0-9]+$/i.test(path)
+}
+
 export function createApp(
   store = new RoomStore(),
   clientBuildRoot = resolve(process.cwd(), 'dist'),
@@ -29,7 +33,7 @@ export function createApp(
         return next()
       }
 
-      if (context.req.path === '/' || !context.req.path.includes('.')) {
+      if (isFrontendRoute(context.req.path)) {
         return spaEntry(context, next)
       }
 
