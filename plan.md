@@ -37,7 +37,8 @@ Create a Scrum Poker / Poker Planning web app inspired by the referenced site, w
 - Add a team member by name (automatic on room join).
 - Display all team members in a list or grid.
 - Show which members have voted and which are pending.
-- Optionally allow removing a member.
+- Allow removing a member from the room.
+- Require a confirmation modal before removing a member from the room.
 - Track member identity for the current session.
 
 ### 3. Fibonacci Card Selection
@@ -95,6 +96,7 @@ Use a Fibonacci-style planning deck such as:
 - Current room participant list with names
 - Status indicators (voted / pending)
 - Member count display
+- Remove member action with confirmation modal
 
 ### Main Board
 - Card deck for Fibonacci values
@@ -146,6 +148,7 @@ Consider storage options for room persistence:
 - Reset clears all selections and sets reveal to false.
 - Only authenticated room participants can vote.
 - Name must be entered before voting.
+- Removing a member requires explicit confirmation before they are removed from the room.
 
 ## Nice-to-Have Enhancements
 - Edit member names
@@ -220,6 +223,7 @@ Consider storage options for room persistence:
 - Enter room with a new name (should be prompted)
 - Enter same room again (name should be pre-filled)
 - Add team members
+- Remove a team member and confirm the removal modal flow
 - Select cards
 - Confirm hidden display
 - Reveal results
@@ -231,6 +235,7 @@ Consider storage options for room persistence:
 - User name is cached in browser and auto-populated on subsequent room entries.
 - User is prompted for name if not cached.
 - Users can add themselves to the board.
+- Facilitators can remove a person from the room only after confirming the action.
 - Users can choose from Fibonacci cards.
 - Scores are hidden until Reveal is clicked.
 - Reset clears the round.
