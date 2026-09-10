@@ -17,7 +17,7 @@ const voteSchema = z.object({
 
 function acceptsHtml(context: Context) {
   const accept = context.req.header('accept') ?? ''
-  return accept.includes('text/html') || accept.includes('*/*')
+  return accept.includes('text/html') || accept.includes('application/xhtml+xml')
 }
 
 export function createApp(
