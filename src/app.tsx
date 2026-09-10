@@ -279,6 +279,7 @@ export function App() {
           <label class="room-link">
             <span>Share link</span>
             <input
+              type="text"
               readOnly
               value={roomLink}
               onFocus={(event) => event.currentTarget.select()}
