@@ -69,7 +69,7 @@ describe('App share link', () => {
     render(h(App, {}), root)
     await flush()
 
-    const shareLink = root.querySelector('input[aria-label="Share link"]') as HTMLInputElement | null
+    const shareLink = root.querySelector('.room-link input') as HTMLInputElement | null
     expect(shareLink?.value).toBe(`${window.location.origin}/room/ROOM1234`)
   })
 
@@ -100,7 +100,7 @@ describe('App share link', () => {
     button?.click()
     await flush()
 
-    const shareLink = root.querySelector('input[aria-label="Share link"]') as HTMLInputElement | null
+    const shareLink = root.querySelector('.room-link input') as HTMLInputElement | null
     expect(shareLink?.value).toBe(`${window.location.origin}/room/ROOM1234`)
     expect(root.textContent).toContain('Copy the link below manually.')
   })

@@ -283,7 +283,6 @@ export function App() {
               readOnly
               value={roomLink}
               onFocus={(event) => event.currentTarget.select()}
-              aria-label="Share link"
             />
           </label>
         ) : null}
