@@ -70,7 +70,8 @@ button:hover:not(:disabled) {
 }
 
 button:focus-visible {
-  outline: none;
+  outline: 2px solid #c7d2fe;
+  outline-offset: 2px;
   background: #4338ca;
   border-color: #a5b4fc;
   box-shadow:

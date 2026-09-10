@@ -39,7 +39,8 @@ export function App() {
   const [nameDraft, setNameDraft] = useState(() => getCachedUserName() ?? '')
   const [creatingRoom, setCreatingRoom] = useState(false)
   const [activeAction, setActiveAction] = useState<'reveal' | 'reset' | null>(null)
-  const [recentlyChangedParticipantIds, setRecentlyChangedParticipantIds] = useState<string[]>([])
+  const [recentlyChangedResultIds, setRecentlyChangedResultIds] = useState<string[]>([])
+  const [recentlyChangedStatusIds, setRecentlyChangedStatusIds] = useState<string[]>([])
   const previousRoomRef = useRef<Room | null>(null)
   const changeTimerRef = useRef<number | null>(null)
 
@@ -49,9 +50,13 @@ export function App() {
     () => room?.participants.find((participant) => participant.id === participantId) ?? null,
     [room, participantId],
   )
-  const changedParticipantIds = useMemo(
-    () => new Set(recentlyChangedParticipantIds),
-    [recentlyChangedParticipantIds],
+  const changedResultIds = useMemo(
+    () => new Set(recentlyChangedResultIds),
+    [recentlyChangedResultIds],
+  )
+  const changedStatusIds = useMemo(
+    () => new Set(recentlyChangedStatusIds),
+    [recentlyChangedStatusIds],
   )
   const roomActionsDisabled = activeAction !== null
   const canReveal = !!room && hasVotes && !room.isRevealed
@@ -115,7 +120,8 @@ export function App() {
   useEffect(() => {
     if (!room) {
       previousRoomRef.current = null
-      setRecentlyChangedParticipantIds([])
+      setRecentlyChangedResultIds([])
+      setRecentlyChangedStatusIds([])
       if (changeTimerRef.current !== null) {
         window.clearTimeout(changeTimerRef.current)
         changeTimerRef.current = null
@@ -127,7 +133,8 @@ export function App() {
     previousRoomRef.current = room
 
     if (!previousRoom || previousRoom.id !== room.id) {
-      setRecentlyChangedParticipantIds([])
+      setRecentlyChangedResultIds([])
+      setRecentlyChangedStatusIds([])
       return
     }
 
@@ -135,7 +142,7 @@ export function App() {
       previousRoom.participants.map((participant) => [participant.id, participant]),
     )
 
-    const changedIds = room.participants
+    const changedResultParticipantIds = room.participants
       .filter((participant) => {
         const previousParticipant = previousParticipantsById.get(participant.id)
 
@@ -148,21 +155,31 @@ export function App() {
       })
       .map((participant) => participant.id)
 
-    if (!changedIds.length) {
+    const changedStatusParticipantIds = room.participants
+      .filter((participant) => {
+        const previousParticipant = previousParticipantsById.get(participant.id)
+        return !previousParticipant || previousParticipant.hasVoted !== participant.hasVoted
+      })
+      .map((participant) => participant.id)
+
+    if (!changedResultParticipantIds.length && !changedStatusParticipantIds.length) {
       if (changeTimerRef.current !== null) {
         window.clearTimeout(changeTimerRef.current)
         changeTimerRef.current = null
       }
-      setRecentlyChangedParticipantIds((current) => (current.length ? [] : current))
+      setRecentlyChangedResultIds((current) => (current.length ? [] : current))
+      setRecentlyChangedStatusIds((current) => (current.length ? [] : current))
       return
     }
 
-    setRecentlyChangedParticipantIds(changedIds)
+    setRecentlyChangedResultIds(changedResultParticipantIds)
+    setRecentlyChangedStatusIds(changedStatusParticipantIds)
     if (changeTimerRef.current !== null) {
       window.clearTimeout(changeTimerRef.current)
     }
     changeTimerRef.current = window.setTimeout(() => {
-      setRecentlyChangedParticipantIds([])
+      setRecentlyChangedResultIds([])
+      setRecentlyChangedStatusIds([])
       changeTimerRef.current = null
     }, 900)
   }, [room])
@@ -347,7 +364,7 @@ export function App() {
               {room.participants.map((participant) => (
                 <li key={participant.id}>
                   <span>{participant.name}</span>
-                  <span class={changedParticipantIds.has(participant.id) ? 'status updated' : 'status'}>
+                  <span class={changedStatusIds.has(participant.id) ? 'status updated' : 'status'}>
                     {participant.hasVoted ? 'Voted' : 'Pending'}
                   </span>
                 </li>
@@ -389,7 +406,7 @@ export function App() {
                       <span
                         class={`result-value ${
                           !participant.hasVoted ? 'pending' : room.isRevealed ? 'revealed' : 'hidden'
-                        }${changedParticipantIds.has(participant.id) ? ' updated' : ''}`}
+                        }${changedResultIds.has(participant.id) ? ' updated' : ''}`}
                       >
                         {!participant.hasVoted
                           ? 'Not voted'
