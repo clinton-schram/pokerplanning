@@ -20,6 +20,23 @@ export function createApp(
 ) {
   const app = new Hono()
 
+  if (existsSync(clientBuildRoot)) {
+    const staticFiles = serveStatic({ root: clientBuildRoot })
+    const spaEntry = serveStatic({ root: clientBuildRoot, path: 'index.html' })
+
+    app.use('*', async (context, next) => {
+      if (context.req.path.startsWith('/api')) {
+        return next()
+      }
+
+      if (context.req.path === '/' || !context.req.path.includes('.')) {
+        return spaEntry(context, next)
+      }
+
+      return staticFiles(context, next)
+    })
+  }
+
   app.post('/api/rooms', async (context) => {
     const body = createOrJoinSchema.parse(await context.req.json())
     const room = store.createRoom(body.name)
@@ -52,23 +69,6 @@ export function createApp(
     const room = store.reset(context.req.param('roomId'))
     return context.json({ room })
   })
-
-  if (existsSync(clientBuildRoot)) {
-    const staticFiles = serveStatic({ root: clientBuildRoot })
-    const spaEntry = serveStatic({ root: clientBuildRoot, path: 'index.html' })
-
-    app.use('*', async (context, next) => {
-      if (context.req.path.startsWith('/api')) {
-        return next()
-      }
-
-      if (context.req.path === '/' || !context.req.path.includes('.')) {
-        return spaEntry(context, next)
-      }
-
-      return staticFiles(context, next)
-    })
-  }
 
   app.onError((error, context) => {
     if (error instanceof RoomStoreError) {
