@@ -54,7 +54,9 @@ export function App() {
   const [creatingRoom, setCreatingRoom] = useState(false)
   const [participantPendingRemoval, setParticipantPendingRemoval] = useState<Participant | null>(null)
   const [removingParticipantId, setRemovingParticipantId] = useState<string | null>(null)
+  const modalRef = useRef<HTMLElement | null>(null)
   const cancelRemoveButtonRef = useRef<HTMLButtonElement | null>(null)
+  const confirmRemoveButtonRef = useRef<HTMLButtonElement | null>(null)
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null)
 
   const requiresName = roomId !== null && !userName
@@ -64,6 +66,8 @@ export function App() {
     [room, participantId],
   )
   const isFacilitator = room?.facilitatorId === participantId
+  const isRemovingPendingParticipant =
+    participantPendingRemoval !== null && removingParticipantId === participantPendingRemoval.id
 
   useEffect(() => {
     const onPopState = () => {
@@ -136,13 +140,50 @@ export function App() {
 
     previouslyFocusedElementRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : null
-    cancelRemoveButtonRef.current?.focus()
 
     return () => {
       previouslyFocusedElementRef.current?.focus()
       previouslyFocusedElementRef.current = null
     }
   }, [participantPendingRemoval])
+
+  useEffect(() => {
+    if (!participantPendingRemoval) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+
+      const modal = modalRef.current
+      const focusable = [cancelRemoveButtonRef.current, confirmRemoveButtonRef.current].filter(
+        (element): element is HTMLButtonElement => !!element && !element.disabled,
+      )
+
+      if (!modal || focusable.length === 0) return
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const activeElement = document.activeElement
+
+      if (!modal.contains(activeElement)) {
+        event.preventDefault()
+        first.focus()
+        return
+      }
+
+      if (!event.shiftKey && activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+
+      if (event.shiftKey && activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [participantPendingRemoval, isRemovingPendingParticipant])
 
   const navigateToRoom = (nextRoomId: string) => {
     window.history.pushState({}, '', `/room/${nextRoomId}`)
@@ -256,6 +297,7 @@ export function App() {
 
   const onCancelRemoveParticipant = () => {
     if (removingParticipantId) return
+    previouslyFocusedElementRef.current?.focus()
     setParticipantPendingRemoval(null)
   }
 
@@ -272,6 +314,14 @@ export function App() {
       setError(removeError instanceof Error ? removeError.message : 'Unable to remove participant.')
     } finally {
       setRemovingParticipantId(null)
+    }
+  }
+
+  const setCancelRemoveButton = (element: HTMLButtonElement | null) => {
+    cancelRemoveButtonRef.current = element
+
+    if (element && participantPendingRemoval) {
+      element.focus()
     }
   }
 
@@ -347,6 +397,7 @@ export function App() {
           <section
             class="card modal"
             role="dialog"
+            ref={modalRef}
             aria-modal="true"
             aria-labelledby="remove-participant-title"
             aria-describedby="remove-participant-description"
@@ -358,19 +409,20 @@ export function App() {
             <div class="actions">
               <button
                 type="button"
-                ref={cancelRemoveButtonRef}
+                ref={setCancelRemoveButton}
                 onClick={onCancelRemoveParticipant}
-                disabled={!!removingParticipantId}
+                disabled={isRemovingPendingParticipant}
               >
                 Cancel
               </button>
               <button
                 type="button"
+                ref={confirmRemoveButtonRef}
                 class="danger"
                 onClick={() => void onConfirmRemoveParticipant()}
-                disabled={!!removingParticipantId}
+                disabled={isRemovingPendingParticipant}
               >
-                {removingParticipantId ? 'Removing...' : 'Remove person'}
+                {isRemovingPendingParticipant ? 'Removing...' : 'Remove person'}
               </button>
             </div>
           </section>
@@ -392,7 +444,11 @@ export function App() {
                     <span>{participant.hasVoted ? 'Voted' : 'Pending'}</span>
                   </div>
                   {isFacilitator && participant.id !== room.facilitatorId ? (
-                    <button type="button" onClick={() => onRequestRemoveParticipant(participant)}>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${participant.name} from the room`}
+                      onClick={() => onRequestRemoveParticipant(participant)}
+                    >
                       Remove
                     </button>
                   ) : null}

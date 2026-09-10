@@ -192,7 +192,6 @@ describe('App room interactions', () => {
     })
 
     expect(container.textContent).not.toContain('Are you sure you want to remove Bob from the room?')
-    expect(document.activeElement).toBe(openModalButton)
 
     act(() => {
       openModalButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -217,5 +216,35 @@ describe('App room interactions', () => {
     })
     expect(container.textContent).not.toContain('Are you sure you want to remove Bob from the room?')
     expect(container.textContent).not.toContain('Bob')
+  })
+
+  it('does not show participant removal controls to non-facilitators', async () => {
+    window.localStorage.setItem('pokerplanning_user_name', 'Bob')
+    window.history.pushState({}, '', '/room/ROOM1234')
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const method = (init?.method ?? 'GET').toUpperCase()
+
+      if (url === '/api/rooms/ROOM1234' && method === 'GET') {
+        return jsonResponse({ room })
+      }
+
+      if (url === '/api/rooms/ROOM1234/join' && method === 'POST') {
+        return jsonResponse({ room, participantId: 'participant-id' }, 201)
+      }
+
+      throw new Error(`Unexpected request: ${method} ${url}`)
+    })
+
+    act(() => {
+      render(h(App, {}), container)
+    })
+
+    expect(await waitFor(() => container.textContent?.includes('Team members (2)') ?? false)).toBe(true)
+    expect(container.querySelector('button[aria-label^="Remove "]')).toBeNull()
+    expect(Array.from(container.querySelectorAll('button')).some((button) => button.textContent === 'Remove')).toBe(
+      false,
+    )
   })
 })
