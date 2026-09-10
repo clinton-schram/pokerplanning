@@ -52,6 +52,24 @@ PORT=4000 npm start
 npm run build
 ```
 
+## Run with Docker
+
+Build the image:
+
+```bash
+docker build -t pokerplanning .
+```
+
+Run the full app:
+
+```bash
+docker run --rm -p 3000:3000 pokerplanning
+```
+
+Then open http://localhost:3000.
+
+The container builds the frontend, and the Hono server serves both the API and the built app from the same port.
+
 ## Test
 
 ```bash

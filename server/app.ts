@@ -1,4 +1,7 @@
 import { Hono } from 'hono'
+import { serveStatic } from '@hono/node-server/serve-static'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { z } from 'zod'
 import { RoomStore, RoomStoreError } from './roomStore.js'
 
@@ -11,7 +14,10 @@ const voteSchema = z.object({
   card: z.string(),
 })
 
-export function createApp(store = new RoomStore()) {
+export function createApp(
+  store = new RoomStore(),
+  clientBuildRoot = resolve(process.cwd(), 'dist'),
+) {
   const app = new Hono()
 
   app.post('/api/rooms', async (context) => {
@@ -46,6 +52,28 @@ export function createApp(store = new RoomStore()) {
     const room = store.reset(context.req.param('roomId'))
     return context.json({ room })
   })
+
+  if (existsSync(clientBuildRoot)) {
+    const staticFiles = serveStatic({ root: clientBuildRoot })
+    const spaEntry = serveStatic({ root: clientBuildRoot, path: 'index.html' })
+
+    app.use('*', async (context, next) => {
+      if (context.req.path.startsWith('/api')) {
+        return next()
+      }
+
+      await staticFiles(context, next)
+      if (context.finalized) {
+        return
+      }
+
+      if (context.req.path.includes('.')) {
+        return context.text('Not Found', 404)
+      }
+
+      return spaEntry(context, next)
+    })
+  }
 
   app.onError((error, context) => {
     if (error instanceof RoomStoreError) {

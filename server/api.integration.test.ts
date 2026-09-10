@@ -1,4 +1,7 @@
 // @vitest-environment node
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createApp } from './app.js'
 import { RoomStore } from './roomStore.js'
@@ -55,5 +58,34 @@ describe('Poker planning API integration', () => {
     expect(reset.room.isRevealed).toBe(false)
     expect(reset.room.participants.every((participant) => !participant.hasVoted)).toBe(true)
     expect(reset.room.participants.every((participant) => participant.selectedCard === null)).toBe(true)
+  })
+
+  it('serves the built frontend with SPA fallback when a client build is present', async () => {
+    const clientBuildRoot = await mkdtemp(join(tmpdir(), 'pokerplanning-'))
+
+    try {
+      await mkdir(join(clientBuildRoot, 'assets'))
+      await writeFile(join(clientBuildRoot, 'index.html'), '<!doctype html><html><body>Poker Planning</body></html>')
+      await writeFile(join(clientBuildRoot, 'assets', 'app.js'), 'console.log("ready")')
+
+      const app = createApp(new RoomStore(), clientBuildRoot)
+
+      const homeResponse = await app.request('/')
+      expect(homeResponse.status).toBe(200)
+      expect(await homeResponse.text()).toContain('Poker Planning')
+
+      const roomResponse = await app.request('/room/AB12CD34')
+      expect(roomResponse.status).toBe(200)
+      expect(await roomResponse.text()).toContain('Poker Planning')
+
+      const assetResponse = await app.request('/assets/app.js')
+      expect(assetResponse.status).toBe(200)
+      expect(await assetResponse.text()).toContain('ready')
+
+      const missingAssetResponse = await app.request('/assets/missing.js')
+      expect(missingAssetResponse.status).toBe(404)
+    } finally {
+      await rm(clientBuildRoot, { recursive: true, force: true })
+    }
   })
 })
