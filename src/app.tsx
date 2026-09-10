@@ -62,6 +62,7 @@ export function App() {
   const hasVotes = room?.participants.some((participant) => participant.hasVoted) ?? false
   const roomLink = roomId ? getRoomLink(roomId) : null
   const shareLinkInputId = roomId ? `room-link-${roomId}` : 'room-link'
+  const shareFeedbackId = roomId ? `room-link-feedback-${roomId}` : 'room-link-feedback'
   const currentParticipant = useMemo(
     () => room?.participants.find((participant) => participant.id === participantId) ?? null,
     [room, participantId],
@@ -285,10 +286,15 @@ export function App() {
               readOnly
               value={roomLink}
               onFocus={(event) => event.currentTarget.select()}
+              aria-describedby={copyFeedback ? shareFeedbackId : undefined}
             />
           </label>
         ) : null}
-        {copyFeedback ? <p class="copy-feedback">{copyFeedback}</p> : null}
+        {copyFeedback ? (
+          <p id={shareFeedbackId} class="copy-feedback" aria-live="polite">
+            {copyFeedback}
+          </p>
+        ) : null}
       </header>
 
       {requiresName ? (

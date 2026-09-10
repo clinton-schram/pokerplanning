@@ -104,4 +104,26 @@ describe('App share link', () => {
     expect(shareLink?.value).toBe(`${window.location.origin}/room/ROOM1234`)
     expect(root.textContent).toContain('Copy the link below manually.')
   })
+
+  it('falls back to document copy when the clipboard api is unavailable', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    })
+    const execCommand = vi.fn().mockReturnValue(true)
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: execCommand,
+    })
+
+    render(h(App, {}), root)
+    await flush()
+
+    const button = root.querySelector('button')
+    button?.click()
+    await flush()
+
+    expect(execCommand).toHaveBeenCalledWith('copy')
+    expect(root.textContent).toContain('Link copied.')
+  })
 })
