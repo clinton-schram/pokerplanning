@@ -25,6 +25,19 @@ h2 {
   gap: 0.75rem;
 }
 
+.room-link {
+  min-width: min(100%, 24rem);
+}
+
+.room-link input {
+  width: 100%;
+}
+
+.copy-feedback {
+  margin: 0;
+  color: #cbd5e1;
+}
+
 .card {
   border: 1px solid #334155;
   border-radius: 0.5rem;
