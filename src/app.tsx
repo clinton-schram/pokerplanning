@@ -26,6 +26,24 @@ function extractRoomId(input: string) {
   return trimmed.toUpperCase()
 }
 
+function getRoomLink(roomId: string) {
+  return new URL(`/room/${roomId}`, window.location.origin).toString()
+}
+
+function copyTextFallback(value: string) {
+  const input = document.createElement('input')
+  input.value = value
+  input.setAttribute('readonly', '')
+  input.style.position = 'absolute'
+  input.style.left = '-9999px'
+  document.body.appendChild(input)
+  input.select()
+  input.setSelectionRange(0, value.length)
+  const copied = document.execCommand?.('copy') ?? false
+  document.body.removeChild(input)
+  return copied
+}
+
 export function App() {
   const [roomId, setRoomId] = useState<string | null>(() =>
     parseRoomIdFromPath(window.location.pathname),
@@ -38,9 +56,13 @@ export function App() {
   const [userName, setUserName] = useState(() => getCachedUserName() ?? '')
   const [nameDraft, setNameDraft] = useState(() => getCachedUserName() ?? '')
   const [creatingRoom, setCreatingRoom] = useState(false)
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
 
   const requiresName = roomId !== null && !userName
   const hasVotes = room?.participants.some((participant) => participant.hasVoted) ?? false
+  const roomLink = roomId ? getRoomLink(roomId) : null
+  const shareLinkInputId = roomId ? `room-link-${roomId}` : 'room-link'
+  const shareFeedbackId = roomId ? `room-link-feedback-${roomId}` : 'room-link-feedback'
   const currentParticipant = useMemo(
     () => room?.participants.find((participant) => participant.id === participantId) ?? null,
     [room, participantId],
@@ -53,6 +75,7 @@ export function App() {
       setRoom(null)
       setParticipantId(null)
       setHasJoinedRoomId(null)
+      setCopyFeedback(null)
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
@@ -108,6 +131,7 @@ export function App() {
     setParticipantId(null)
     setHasJoinedRoomId(null)
     setError(null)
+    setCopyFeedback(null)
   }
 
   const onCreateRoom = async () => {
@@ -187,8 +211,24 @@ export function App() {
   }
 
   const copyRoomLink = async () => {
-    if (!roomId) return
-    await navigator.clipboard.writeText(`${window.location.origin}/room/${roomId}`)
+    if (!roomLink) return
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(roomLink)
+        setCopyFeedback('Link copied.')
+        return
+      }
+    } catch {
+      // Fall through to the manual fallback.
+    }
+
+    if (copyTextFallback(roomLink)) {
+      setCopyFeedback('Link copied.')
+      return
+    }
+
+    setCopyFeedback('Copy the link below manually.')
   }
 
   if (!roomId) {
@@ -233,10 +273,32 @@ export function App() {
         <h1>Poker Planning</h1>
         <div class="room-meta">
           <span>Room: {roomId}</span>
-          <button type="button" onClick={() => void copyRoomLink()}>
+          <button
+            type="button"
+            onClick={() => void copyRoomLink()}
+            aria-describedby={copyFeedback ? shareFeedbackId : undefined}
+          >
             Copy Link
           </button>
         </div>
+        {roomLink ? (
+          <label class="room-link" htmlFor={shareLinkInputId}>
+            <span>Share link</span>
+            <input
+              id={shareLinkInputId}
+              type="text"
+              readOnly
+              value={roomLink}
+              onFocus={(event) => event.currentTarget.select()}
+              aria-describedby={copyFeedback ? shareFeedbackId : undefined}
+            />
+          </label>
+        ) : null}
+        {copyFeedback ? (
+          <p id={shareFeedbackId} class="copy-feedback" aria-live="polite">
+            {copyFeedback}
+          </p>
+        ) : null}
       </header>
 
       {requiresName ? (
