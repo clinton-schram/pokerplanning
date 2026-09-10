@@ -162,15 +162,7 @@ export function App() {
       })
       .map((participant) => participant.id)
 
-    if (!changedResultParticipantIds.length && !changedStatusParticipantIds.length) {
-      if (changeTimerRef.current !== null) {
-        window.clearTimeout(changeTimerRef.current)
-        changeTimerRef.current = null
-      }
-      setRecentlyChangedResultIds((current) => (current.length ? [] : current))
-      setRecentlyChangedStatusIds((current) => (current.length ? [] : current))
-      return
-    }
+    if (!changedResultParticipantIds.length && !changedStatusParticipantIds.length) return
 
     setRecentlyChangedResultIds(changedResultParticipantIds)
     setRecentlyChangedStatusIds(changedStatusParticipantIds)
