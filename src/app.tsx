@@ -27,6 +27,19 @@ function extractRoomId(input: string) {
   return trimmed.toUpperCase()
 }
 
+function copyTextWithFallback(text: string) {
+  const input = document.createElement('textarea')
+  input.value = text
+  input.setAttribute('readonly', '')
+  input.style.position = 'fixed'
+  input.style.opacity = '0'
+  document.body.append(input)
+  input.select()
+  const copied = document.execCommand('copy')
+  input.remove()
+  return copied
+}
+
 export function App() {
   const [roomId, setRoomId] = useState<string | null>(() =>
     parseRoomIdFromPath(window.location.pathname),
@@ -205,15 +218,18 @@ export function App() {
     if (!roomId) return
     const roomLink = `${window.location.origin}/room/${roomId}`
 
-    if (!navigator.clipboard?.writeText) {
-      setError('Clipboard copy is not available in this browser.')
-      return
-    }
-
     try {
-      await navigator.clipboard.writeText(roomLink)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(roomLink)
+      } else if (!copyTextWithFallback(roomLink)) {
+        throw new Error('fallback-copy-failed')
+      }
       setError(null)
     } catch {
+      if (copyTextWithFallback(roomLink)) {
+        setError(null)
+        return
+      }
       setError('Unable to copy room link.')
     }
   }
@@ -318,9 +334,12 @@ export function App() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="remove-participant-title"
+            aria-describedby="remove-participant-description"
           >
             <h2 id="remove-participant-title">Remove participant?</h2>
-            <p>Are you sure you want to remove {participantPendingRemoval.name} from the room?</p>
+            <p id="remove-participant-description">
+              Are you sure you want to remove {participantPendingRemoval.name} from the room?
+            </p>
             <div class="actions">
               <button type="button" onClick={onCancelRemoveParticipant} disabled={!!removingParticipantId}>
                 Cancel
