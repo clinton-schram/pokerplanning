@@ -52,9 +52,37 @@ PORT=4000 npm start
 npm run build
 ```
 
+## Run with Docker Compose
+
+Start the full app in the background:
+
+```bash
+docker compose up -d
+```
+
+Then open http://localhost:3000 by default.
+
+The Compose service sets `HOST=0.0.0.0` in the container so the app is reachable from your machine.
+
+If you use the legacy Compose CLI, `docker-compose up -d` works with the included `docker-compose.yml` file.
+
+To use a different host port:
+
+```bash
+APP_PORT=4000 docker compose up -d
+```
+
+Then open `http://localhost:4000`.
+
+Stop it with:
+
+```bash
+docker compose down
+```
+
 ## Run with Docker
 
-Build the image:
+Build the image manually:
 
 ```bash
 docker build -t pokerplanning .
