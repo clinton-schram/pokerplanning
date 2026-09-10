@@ -98,6 +98,10 @@ button:disabled {
   text-align: left;
 }
 
+.results-table thead th:last-child {
+  text-align: right;
+}
+
 .results-table tbody th {
   font-weight: 600;
   text-align: left;
