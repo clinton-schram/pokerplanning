@@ -8,6 +8,7 @@ const cardSchema = z.enum(AVAILABLE_CARDS)
 
 type StoreRoom = {
   id: string
+  facilitatorId: string
   isRevealed: boolean
   participants: Participant[]
 }
@@ -28,7 +29,12 @@ export class RoomStore {
     const normalizedName = nameSchema.parse(name)
     const roomId = this.newRoomId()
     const participant = this.newParticipant(normalizedName)
-    const room: StoreRoom = { id: roomId, isRevealed: false, participants: [participant] }
+    const room: StoreRoom = {
+      id: roomId,
+      facilitatorId: participant.id,
+      isRevealed: false,
+      participants: [participant],
+    }
     this.rooms.set(roomId, room)
     return {
       room: this.toResponseRoom(room),
@@ -113,9 +119,38 @@ export class RoomStore {
     return this.toResponseRoom(room)
   }
 
+  removeParticipant(roomId: string, actorParticipantId: string, targetParticipantId: string) {
+    const room = this.rooms.get(roomId)
+    if (!room) {
+      throw new RoomStoreError(404, 'Room not found.')
+    }
+
+    const actor = room.participants.find((participant) => participant.id === actorParticipantId)
+    if (!actor) {
+      throw new RoomStoreError(404, 'Participant not found.')
+    }
+
+    if (actor.id !== room.facilitatorId) {
+      throw new RoomStoreError(403, 'Only the facilitator can remove participants.')
+    }
+
+    if (targetParticipantId === room.facilitatorId) {
+      throw new RoomStoreError(400, 'The facilitator cannot be removed.')
+    }
+
+    const participantIndex = room.participants.findIndex((participant) => participant.id === targetParticipantId)
+    if (participantIndex === -1) {
+      throw new RoomStoreError(404, 'Participant not found.')
+    }
+
+    room.participants.splice(participantIndex, 1)
+    return this.toResponseRoom(room)
+  }
+
   private toResponseRoom(room: StoreRoom): Room {
     return {
       id: room.id,
+      facilitatorId: room.facilitatorId,
       isRevealed: room.isRevealed,
       participants: room.participants.map((participant) => ({ ...participant })),
     }

@@ -4,12 +4,13 @@ import {
   createRoom,
   fetchRoom,
   joinRoom,
+  removeParticipant,
   resetRoom,
   revealRoom,
   submitVote,
 } from './lib/api'
 import { getCachedUserName, saveCachedUserName } from './lib/nameCache'
-import type { Room } from './lib/types'
+import type { Participant, Room } from './lib/types'
 import { AVAILABLE_CARDS } from './lib/types'
 
 function parseRoomIdFromPath(pathname: string) {
@@ -38,6 +39,8 @@ export function App() {
   const [userName, setUserName] = useState(() => getCachedUserName() ?? '')
   const [nameDraft, setNameDraft] = useState(() => getCachedUserName() ?? '')
   const [creatingRoom, setCreatingRoom] = useState(false)
+  const [participantPendingRemoval, setParticipantPendingRemoval] = useState<Participant | null>(null)
+  const [removingParticipantId, setRemovingParticipantId] = useState<string | null>(null)
 
   const requiresName = roomId !== null && !userName
   const hasVotes = room?.participants.some((participant) => participant.hasVoted) ?? false
@@ -45,6 +48,7 @@ export function App() {
     () => room?.participants.find((participant) => participant.id === participantId) ?? null,
     [room, participantId],
   )
+  const isFacilitator = room?.facilitatorId === participantId
 
   useEffect(() => {
     const onPopState = () => {
@@ -100,6 +104,17 @@ export function App() {
       window.clearInterval(timer)
     }
   }, [roomId])
+
+  useEffect(() => {
+    if (
+      participantPendingRemoval &&
+      room &&
+      !room.participants.some((participant) => participant.id === participantPendingRemoval.id)
+    ) {
+      setParticipantPendingRemoval(null)
+      setRemovingParticipantId(null)
+    }
+  }, [participantPendingRemoval, room])
 
   const navigateToRoom = (nextRoomId: string) => {
     window.history.pushState({}, '', `/room/${nextRoomId}`)
@@ -191,6 +206,32 @@ export function App() {
     await navigator.clipboard.writeText(`${window.location.origin}/room/${roomId}`)
   }
 
+  const onRequestRemoveParticipant = (participant: Participant) => {
+    setParticipantPendingRemoval(participant)
+    setError(null)
+  }
+
+  const onCancelRemoveParticipant = () => {
+    if (removingParticipantId) return
+    setParticipantPendingRemoval(null)
+  }
+
+  const onConfirmRemoveParticipant = async () => {
+    if (!roomId || !participantId || !participantPendingRemoval) return
+
+    setRemovingParticipantId(participantPendingRemoval.id)
+    try {
+      const response = await removeParticipant(roomId, participantId, participantPendingRemoval.id)
+      setRoom(response.room)
+      setParticipantPendingRemoval(null)
+      setError(null)
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : 'Unable to remove participant.')
+    } finally {
+      setRemovingParticipantId(null)
+    }
+  }
+
   if (!roomId) {
     return (
       <main class="container">
@@ -258,6 +299,33 @@ export function App() {
 
       {error ? <p class="error">{error}</p> : null}
 
+      {participantPendingRemoval ? (
+        <div class="modal-backdrop">
+          <section
+            class="card modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-participant-title"
+          >
+            <h2 id="remove-participant-title">Remove participant?</h2>
+            <p>Are you sure you want to remove {participantPendingRemoval.name} from the room?</p>
+            <div class="actions">
+              <button type="button" onClick={onCancelRemoveParticipant} disabled={!!removingParticipantId}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="danger"
+                onClick={() => void onConfirmRemoveParticipant()}
+                disabled={!!removingParticipantId}
+              >
+                {removingParticipantId ? 'Removing...' : 'Remove person'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
       {room ? (
         <>
           <section class="card">
@@ -265,8 +333,18 @@ export function App() {
             <ul class="participants">
               {room.participants.map((participant) => (
                 <li key={participant.id}>
-                  <span>{participant.name}</span>
-                  <span>{participant.hasVoted ? 'Voted' : 'Pending'}</span>
+                  <div class="participant-details">
+                    <span>
+                      {participant.name}
+                      {participant.id === room.facilitatorId ? ' (facilitator)' : ''}
+                    </span>
+                    <span>{participant.hasVoted ? 'Voted' : 'Pending'}</span>
+                  </div>
+                  {isFacilitator && participant.id !== room.facilitatorId ? (
+                    <button type="button" onClick={() => onRequestRemoveParticipant(participant)}>
+                      Remove
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ul>

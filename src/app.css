@@ -78,6 +78,32 @@ button:disabled {
 .participants li {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.participant-details {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(15 23 42 / 0.75);
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.modal {
+  max-width: 28rem;
+  width: min(100%, 28rem);
+}
+
+button.danger {
+  background: #991b1b;
+  border-color: #ef4444;
 }
 
 .results-table {

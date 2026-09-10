@@ -8,6 +8,7 @@ describe('RoomStore', () => {
     const created = store.createRoom('Alice')
 
     expect(created.room.id).toHaveLength(8)
+    expect(created.room.facilitatorId).toBe(created.participantId)
     expect(created.room.participants).toHaveLength(1)
     expect(created.room.participants[0].name).toBe('Alice')
     expect(created.participantId).toBe(created.room.participants[0].id)
@@ -36,5 +37,26 @@ describe('RoomStore', () => {
 
     expect(() => store.reveal(created.room.id)).toThrowError(RoomStoreError)
     expect(() => store.reveal(created.room.id)).toThrow('At least one vote is required to reveal.')
+  })
+
+  it('allows the facilitator to remove another participant', () => {
+    const store = new RoomStore()
+    const created = store.createRoom('Alice')
+    const joined = store.joinRoom(created.room.id, 'Bob')
+
+    const updated = store.removeParticipant(created.room.id, created.participantId, joined.participantId)
+
+    expect(updated.participants).toHaveLength(1)
+    expect(updated.participants[0].name).toBe('Alice')
+  })
+
+  it('rejects participant removal by a non-facilitator', () => {
+    const store = new RoomStore()
+    const created = store.createRoom('Alice')
+    const joined = store.joinRoom(created.room.id, 'Bob')
+
+    expect(() => store.removeParticipant(created.room.id, joined.participantId, created.participantId)).toThrow(
+      'Only the facilitator can remove participants.',
+    )
   })
 })

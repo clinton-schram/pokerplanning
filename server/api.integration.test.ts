@@ -53,11 +53,28 @@ describe('Poker planning API integration', () => {
     const resetResponse = await app.request(`/api/rooms/${roomId}/reset`, { method: 'POST' })
     expect(resetResponse.status).toBe(200)
     const reset = (await resetResponse.json()) as {
-      room: { isRevealed: boolean; participants: Array<{ hasVoted: boolean; selectedCard: string | null }> }
+      room: {
+        facilitatorId: string
+        isRevealed: boolean
+        participants: Array<{ hasVoted: boolean; selectedCard: string | null }>
+      }
     }
+    expect(reset.room.facilitatorId).toBe(created.participantId)
     expect(reset.room.isRevealed).toBe(false)
     expect(reset.room.participants.every((participant) => !participant.hasVoted)).toBe(true)
     expect(reset.room.participants.every((participant) => participant.selectedCard === null)).toBe(true)
+
+    const removeResponse = await app.request(`/api/rooms/${roomId}/participants/${joined.participantId}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ actorParticipantId: created.participantId }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(removeResponse.status).toBe(200)
+    const removed = (await removeResponse.json()) as {
+      room: { participants: Array<{ id: string }> }
+    }
+    expect(removed.room.participants).toHaveLength(1)
+    expect(removed.room.participants[0].id).toBe(created.participantId)
   })
 
   it('serves the built frontend with SPA fallback when a client build is present', async () => {

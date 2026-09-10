@@ -25,6 +25,7 @@ export type Participant = {
 
 export type Room = {
   id: string
+  facilitatorId: string
   participants: Participant[]
   isRevealed: boolean
 }

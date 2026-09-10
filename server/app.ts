@@ -15,6 +15,10 @@ const voteSchema = z.object({
   card: z.string(),
 })
 
+const removeParticipantSchema = z.object({
+  actorParticipantId: z.string().uuid(),
+})
+
 function acceptsHtml(context: Context) {
   const accept = context.req.header('accept') ?? ''
   return accept.includes('text/html') || accept.includes('application/xhtml+xml')
@@ -98,9 +102,19 @@ export function createApp(
     return context.json({ room })
   })
 
+  app.delete('/api/rooms/:roomId/participants/:participantId', async (context) => {
+    const body = removeParticipantSchema.parse(await context.req.json())
+    const room = store.removeParticipant(
+      context.req.param('roomId'),
+      body.actorParticipantId,
+      context.req.param('participantId'),
+    )
+    return context.json({ room })
+  })
+
   app.onError((error, context) => {
     if (error instanceof RoomStoreError) {
-      context.status(error.status === 404 ? 404 : 400)
+      context.status(error.status)
       return context.json({ error: error.message })
     }
 

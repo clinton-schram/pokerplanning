@@ -53,3 +53,10 @@ export function resetRoom(roomId: string) {
     method: 'POST',
   })
 }
+
+export function removeParticipant(roomId: string, actorParticipantId: string, targetParticipantId: string) {
+  return request<RoomResponse>(`/api/rooms/${roomId}/participants/${targetParticipantId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ actorParticipantId }),
+  })
+}
