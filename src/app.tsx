@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import './app.css'
 import {
   createRoom,
@@ -54,6 +54,8 @@ export function App() {
   const [creatingRoom, setCreatingRoom] = useState(false)
   const [participantPendingRemoval, setParticipantPendingRemoval] = useState<Participant | null>(null)
   const [removingParticipantId, setRemovingParticipantId] = useState<string | null>(null)
+  const cancelRemoveButtonRef = useRef<HTMLButtonElement | null>(null)
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null)
 
   const requiresName = roomId !== null && !userName
   const hasVotes = room?.participants.some((participant) => participant.hasVoted) ?? false
@@ -128,6 +130,19 @@ export function App() {
       setRemovingParticipantId(null)
     }
   }, [participantPendingRemoval, room])
+
+  useEffect(() => {
+    if (!participantPendingRemoval) return
+
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    cancelRemoveButtonRef.current?.focus()
+
+    return () => {
+      previouslyFocusedElementRef.current?.focus()
+      previouslyFocusedElementRef.current = null
+    }
+  }, [participantPendingRemoval])
 
   const navigateToRoom = (nextRoomId: string) => {
     window.history.pushState({}, '', `/room/${nextRoomId}`)
@@ -341,7 +356,12 @@ export function App() {
               Are you sure you want to remove {participantPendingRemoval.name} from the room?
             </p>
             <div class="actions">
-              <button type="button" onClick={onCancelRemoveParticipant} disabled={!!removingParticipantId}>
+              <button
+                type="button"
+                ref={cancelRemoveButtonRef}
+                onClick={onCancelRemoveParticipant}
+                disabled={!!removingParticipantId}
+              >
                 Cancel
               </button>
               <button
