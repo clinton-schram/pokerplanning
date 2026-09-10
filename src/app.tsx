@@ -273,7 +273,11 @@ export function App() {
         <h1>Poker Planning</h1>
         <div class="room-meta">
           <span>Room: {roomId}</span>
-          <button type="button" onClick={() => void copyRoomLink()}>
+          <button
+            type="button"
+            onClick={() => void copyRoomLink()}
+            aria-describedby={copyFeedback ? shareFeedbackId : undefined}
+          >
             Copy Link
           </button>
         </div>

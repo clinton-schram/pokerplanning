@@ -100,6 +100,7 @@ describe('App share link', () => {
     button?.click()
     await flush()
 
+    expect(execCommand).toHaveBeenCalledWith('copy')
     const shareLink = root.querySelector('.room-link input') as HTMLInputElement | null
     expect(shareLink?.value).toBe(`${window.location.origin}/room/ROOM1234`)
     expect(root.textContent).toContain('Copy the link below manually.')
