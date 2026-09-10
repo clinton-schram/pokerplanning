@@ -4,8 +4,8 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.build.tsbuildinfo",
     "allowImportingTsExtensions": false,
     "noEmit": false,
-    "outDir": "./build/server",
-    "rewriteRelativeImportExtensions": true,
-    "rootDir": "./server"
-  }
+    "outDir": "./build",
+    "rewriteRelativeImportExtensions": true
+  },
+  "include": ["server/**/*.ts", "src/lib/types.ts"]
 }

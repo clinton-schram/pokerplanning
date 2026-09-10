@@ -17,7 +17,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/build/server ./build/server
+COPY --from=build /app/build ./build
 
 ENV NODE_ENV=production
 ENV PORT=3000
