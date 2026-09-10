@@ -82,6 +82,12 @@ describe('Poker planning API integration', () => {
       expect(roomResponse.status).toBe(200)
       expect(await roomResponse.text()).toContain('Poker Planning')
 
+      const dottedRouteResponse = await app.request('/users/jane.doe', {
+        headers: { Accept: 'text/html' },
+      })
+      expect(dottedRouteResponse.status).toBe(200)
+      expect(await dottedRouteResponse.text()).toContain('Poker Planning')
+
       const assetResponse = await app.request('/assets/app.js')
       expect(assetResponse.status).toBe(200)
       expect(await assetResponse.text()).toContain('ready')

@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import type { Context } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, statSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { z } from 'zod'
 import { RoomStore, RoomStoreError } from './roomStore.js'
 
@@ -18,6 +18,21 @@ const voteSchema = z.object({
 function acceptsHtml(context: Context) {
   const accept = context.req.header('accept') ?? ''
   return accept.includes('text/html') || accept.includes('application/xhtml+xml')
+}
+
+function hasStaticFile(root: string, requestPath: string) {
+  const filePath = resolve(root, `.${requestPath}`)
+  const relativePath = relative(root, filePath)
+
+  if (relativePath.startsWith('..')) {
+    return false
+  }
+
+  try {
+    return statSync(filePath).isFile()
+  } catch {
+    return false
+  }
 }
 
 export function createApp(
@@ -38,11 +53,15 @@ export function createApp(
         return next()
       }
 
-      if (!context.req.path.includes('.') && acceptsHtml(context)) {
+      if (hasStaticFile(clientBuildRoot, context.req.path)) {
+        return staticFiles(context, next)
+      }
+
+      if (acceptsHtml(context)) {
         return spaEntry(context, next)
       }
 
-      return staticFiles(context, next)
+      return next()
     })
   }
 
