@@ -1,4 +1,8 @@
 import { Hono } from 'hono'
+import type { Context } from 'hono'
+import { serveStatic } from '@hono/node-server/serve-static'
+import { existsSync, statSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { z } from 'zod'
 import { RoomStore, RoomStoreError } from './roomStore.js'
 
@@ -11,8 +15,55 @@ const voteSchema = z.object({
   card: z.string(),
 })
 
-export function createApp(store = new RoomStore()) {
+function acceptsHtml(context: Context) {
+  const accept = context.req.header('accept') ?? ''
+  return accept.includes('text/html') || accept.includes('application/xhtml+xml')
+}
+
+function hasStaticFile(root: string, requestPath: string) {
+  const filePath = resolve(root, `.${requestPath}`)
+  const relativePath = relative(root, filePath)
+
+  if (relativePath.startsWith('..')) {
+    return false
+  }
+
+  try {
+    return statSync(filePath).isFile()
+  } catch {
+    return false
+  }
+}
+
+export function createApp(
+  store = new RoomStore(),
+  clientBuildRoot = resolve(process.cwd(), 'dist'),
+) {
   const app = new Hono()
+
+  if (existsSync(clientBuildRoot)) {
+    const staticFiles = serveStatic({ root: clientBuildRoot })
+    const spaEntry = serveStatic({ root: clientBuildRoot, path: 'index.html' })
+
+    app.use('*', async (context, next) => {
+      if (
+        context.req.path.startsWith('/api') ||
+        (context.req.method !== 'GET' && context.req.method !== 'HEAD')
+      ) {
+        return next()
+      }
+
+      if (hasStaticFile(clientBuildRoot, context.req.path)) {
+        return staticFiles(context, next)
+      }
+
+      if (acceptsHtml(context)) {
+        return spaEntry(context, next)
+      }
+
+      return next()
+    })
+  }
 
   app.post('/api/rooms', async (context) => {
     const body = createOrJoinSchema.parse(await context.req.json())
