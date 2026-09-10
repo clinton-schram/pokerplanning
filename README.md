@@ -52,9 +52,25 @@ PORT=4000 npm start
 npm run build
 ```
 
+## Run with Docker Compose
+
+Start the full app in the background:
+
+```bash
+docker-compose up -d
+```
+
+Then open http://localhost:3000.
+
+Stop it with:
+
+```bash
+docker-compose down
+```
+
 ## Run with Docker
 
-Build the image:
+Build the image manually:
 
 ```bash
 docker build -t pokerplanning .
