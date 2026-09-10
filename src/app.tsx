@@ -291,18 +291,28 @@ export function App() {
 
           <section class="card">
             <h2>Results</h2>
-            <ul class="results">
-              {room.participants.map((participant) => (
-                <li key={participant.id}>
-                  <strong>{participant.name}</strong>:{' '}
-                  {!participant.hasVoted
-                    ? 'Not voted'
-                    : room.isRevealed
-                      ? participant.selectedCard
-                      : 'Hidden'}
-                </li>
-              ))}
-            </ul>
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Chosen value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {room.participants.map((participant) => (
+                  <tr key={participant.id}>
+                    <th scope="row">{participant.name}</th>
+                    <td>
+                      {!participant.hasVoted
+                        ? 'Not voted'
+                        : room.isRevealed
+                          ? participant.selectedCard
+                          : 'Hidden'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </section>
 
           <section class="actions">
