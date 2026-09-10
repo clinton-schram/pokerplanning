@@ -62,16 +62,11 @@ export function createApp(
         return next()
       }
 
-      await staticFiles(context, next)
-      if (context.finalized) {
-        return
+      if (context.req.path === '/' || !context.req.path.includes('.')) {
+        return spaEntry(context, next)
       }
 
-      if (context.req.path.includes('.')) {
-        return context.text('Not Found', 404)
-      }
-
-      return spaEntry(context, next)
+      return staticFiles(context, next)
     })
   }
 

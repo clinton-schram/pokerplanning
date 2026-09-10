@@ -4,7 +4,7 @@ Lightweight poker planning app built with Preact, Vite, TypeScript, and a Hono A
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - npm
 
 ## Install
