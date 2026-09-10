@@ -144,7 +144,14 @@ export function App() {
       })
       .map((participant) => participant.id)
 
-    if (!changedIds.length) return
+    if (!changedIds.length) {
+      if (changeTimerRef.current !== null) {
+        window.clearTimeout(changeTimerRef.current)
+        changeTimerRef.current = null
+      }
+      setRecentlyChangedParticipantIds((current) => (current.length ? [] : current))
+      return
+    }
 
     setRecentlyChangedParticipantIds(changedIds)
     if (changeTimerRef.current !== null) {
