@@ -54,6 +54,8 @@ export function App() {
     [recentlyChangedParticipantIds],
   )
   const roomActionsDisabled = activeAction !== null
+  const canReveal = !!room && hasVotes && !room.isRevealed
+  const canReset = !!room && (room.isRevealed || hasVotes)
 
   useEffect(() => {
     const onPopState = () => {
@@ -238,7 +240,7 @@ export function App() {
   }
 
   const onReveal = async () => {
-    if (!roomId || roomActionsDisabled) return
+    if (!roomId || roomActionsDisabled || !canReveal) return
     setActiveAction('reveal')
     try {
       const response = await revealRoom(roomId)
@@ -252,7 +254,7 @@ export function App() {
   }
 
   const onReset = async () => {
-    if (!roomId || roomActionsDisabled) return
+    if (!roomId || roomActionsDisabled || !canReset) return
     setActiveAction('reset')
     try {
       const response = await resetRoom(roomId)
@@ -407,7 +409,7 @@ export function App() {
               type="button"
               class={activeAction === 'reveal' ? 'action-button is-busy' : 'action-button'}
               onClick={() => void onReveal()}
-              disabled={!hasVotes || roomActionsDisabled}
+              disabled={!canReveal || roomActionsDisabled}
             >
               {activeAction === 'reveal' ? 'Revealing...' : 'Reveal'}
             </button>
@@ -415,7 +417,7 @@ export function App() {
               type="button"
               class={activeAction === 'reset' ? 'action-button is-busy' : 'action-button'}
               onClick={() => void onReset()}
-              disabled={roomActionsDisabled}
+              disabled={!canReset || roomActionsDisabled}
             >
               {activeAction === 'reset' ? 'Resetting...' : 'Reset'}
             </button>
