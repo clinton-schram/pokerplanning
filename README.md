@@ -64,6 +64,12 @@ Then open http://localhost:3000.
 
 If you use the legacy Compose CLI, `docker-compose up -d` works with the included `docker-compose.yml` file.
 
+To use a different host port:
+
+```bash
+APP_PORT=4000 docker compose up -d
+```
+
 Stop it with:
 
 ```bash
