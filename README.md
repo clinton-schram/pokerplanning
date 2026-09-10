@@ -15,16 +15,16 @@ npm install
 
 ## Run locally
 
-Start the API server in one terminal:
-
-```bash
-npm run dev:server
-```
-
-Start the frontend dev server in a second terminal:
+Start both the API and frontend dev servers:
 
 ```bash
 npm run dev
+```
+
+If you need to run only the frontend dev server:
+
+```bash
+npm run dev:client
 ```
 
 Then open the Vite app in your browser:
@@ -66,7 +66,8 @@ npm run test:watch
 
 ## Available scripts
 
-- `npm run dev` - start the Vite frontend dev server
+- `npm run dev` - start both API and frontend dev servers in watch mode
+- `npm run dev:client` - start only the Vite frontend dev server
 - `npm run dev:server` - start the API server in watch mode
 - `npm start` - start the API server once
 - `npm run build` - run TypeScript build and create the frontend production bundle
