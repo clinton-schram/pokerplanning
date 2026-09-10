@@ -114,7 +114,8 @@ export function createApp(
 
   app.onError((error, context) => {
     if (error instanceof RoomStoreError) {
-      context.status(error.status)
+      const status = error.status === 404 ? 404 : error.status === 403 ? 403 : 400
+      context.status(status)
       return context.json({ error: error.message })
     }
 
