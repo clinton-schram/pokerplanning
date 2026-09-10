@@ -70,11 +70,15 @@ describe('Poker planning API integration', () => {
 
       const app = createApp(new RoomStore(), clientBuildRoot)
 
-      const homeResponse = await app.request('/')
+      const homeResponse = await app.request('/', {
+        headers: { Accept: 'text/html' },
+      })
       expect(homeResponse.status).toBe(200)
       expect(await homeResponse.text()).toContain('Poker Planning')
 
-      const roomResponse = await app.request('/room/AB12CD34')
+      const roomResponse = await app.request('/room/AB12CD34', {
+        headers: { Accept: 'text/html' },
+      })
       expect(roomResponse.status).toBe(200)
       expect(await roomResponse.text()).toContain('Poker Planning')
 
@@ -85,8 +89,11 @@ describe('Poker planning API integration', () => {
       const missingAssetResponse = await app.request('/assets/missing.js')
       expect(missingAssetResponse.status).toBe(404)
 
-      const unknownRouteResponse = await app.request('/unknown')
-      expect(unknownRouteResponse.status).toBe(404)
+      const postRoomResponse = await app.request('/room/AB12CD34', {
+        method: 'POST',
+        headers: { Accept: 'text/html' },
+      })
+      expect(postRoomResponse.status).toBe(404)
     } finally {
       await rm(clientBuildRoot, { recursive: true, force: true })
     }

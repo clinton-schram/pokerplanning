@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import type { Context } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -14,8 +15,9 @@ const voteSchema = z.object({
   card: z.string(),
 })
 
-function isFrontendRoute(path: string) {
-  return path === '/' || /^\/room\/[A-Z0-9]+$/i.test(path)
+function acceptsHtml(context: Context) {
+  const accept = context.req.header('accept') ?? ''
+  return accept.includes('text/html') || accept.includes('*/*')
 }
 
 export function createApp(
@@ -29,11 +31,14 @@ export function createApp(
     const spaEntry = serveStatic({ root: clientBuildRoot, path: 'index.html' })
 
     app.use('*', async (context, next) => {
-      if (context.req.path.startsWith('/api')) {
+      if (
+        context.req.path.startsWith('/api') ||
+        (context.req.method !== 'GET' && context.req.method !== 'HEAD')
+      ) {
         return next()
       }
 
-      if (isFrontendRoute(context.req.path)) {
+      if (!context.req.path.includes('.') && acceptsHtml(context)) {
         return spaEntry(context, next)
       }
 
