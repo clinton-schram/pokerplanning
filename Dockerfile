@@ -9,7 +9,7 @@ COPY . .
 RUN npm run build
 RUN npx tsc -p tsconfig.server.build.json
 
-FROM node:22-bookworm-slim
+FROM node:22-bookworm-slim AS production
 
 WORKDIR /app
 

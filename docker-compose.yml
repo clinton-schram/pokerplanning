@@ -2,6 +2,8 @@ services:
   app:
     build:
       context: .
+      dockerfile: Dockerfile
+      target: production
     command: node build/server/index.js
     environment:
       NODE_ENV: production
