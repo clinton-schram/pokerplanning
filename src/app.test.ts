@@ -85,7 +85,7 @@ describe('App share link', () => {
     expect(root.textContent).toContain('Link copied.')
   })
 
-  it('keeps the link visible when copy fails', async () => {
+  it('shows a manual fallback message when automatic copy fails', async () => {
     clipboard.writeText.mockRejectedValue(new Error('denied'))
     const execCommand = vi.fn().mockReturnValue(false)
     Object.defineProperty(document, 'execCommand', {
