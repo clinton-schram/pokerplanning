@@ -129,11 +129,13 @@ export function App() {
       return
     }
 
+    const previousParticipantsById = new Map(
+      previousRoom.participants.map((participant) => [participant.id, participant]),
+    )
+
     const changedIds = room.participants
       .filter((participant) => {
-        const previousParticipant = previousRoom.participants.find(
-          (candidate) => candidate.id === participant.id,
-        )
+        const previousParticipant = previousParticipantsById.get(participant.id)
 
         return (
           !previousParticipant ||
