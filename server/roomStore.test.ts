@@ -59,4 +59,14 @@ describe('RoomStore', () => {
       'Only the facilitator can remove participants.',
     )
   })
+
+  it('rejects attempts to remove the facilitator', () => {
+    const store = new RoomStore()
+    const created = store.createRoom('Alice')
+    store.joinRoom(created.room.id, 'Bob')
+
+    expect(() => store.removeParticipant(created.room.id, created.participantId, created.participantId)).toThrow(
+      'The facilitator cannot be removed.',
+    )
+  })
 })

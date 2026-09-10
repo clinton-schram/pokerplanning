@@ -203,7 +203,19 @@ export function App() {
 
   const copyRoomLink = async () => {
     if (!roomId) return
-    await navigator.clipboard.writeText(`${window.location.origin}/room/${roomId}`)
+    const roomLink = `${window.location.origin}/room/${roomId}`
+
+    if (!navigator.clipboard?.writeText) {
+      setError('Clipboard copy is not available in this browser.')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(roomLink)
+      setError(null)
+    } catch {
+      setError('Unable to copy room link.')
+    }
   }
 
   const onRequestRemoveParticipant = (participant: Participant) => {
