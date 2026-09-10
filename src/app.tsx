@@ -61,6 +61,7 @@ export function App() {
   const requiresName = roomId !== null && !userName
   const hasVotes = room?.participants.some((participant) => participant.hasVoted) ?? false
   const roomLink = roomId ? getRoomLink(roomId) : null
+  const shareLinkInputId = roomId ? `room-link-${roomId}` : 'room-link'
   const currentParticipant = useMemo(
     () => room?.participants.find((participant) => participant.id === participantId) ?? null,
     [room, participantId],
@@ -276,9 +277,10 @@ export function App() {
           </button>
         </div>
         {roomLink ? (
-          <label class="room-link">
+          <label class="room-link" htmlFor={shareLinkInputId}>
             <span>Share link</span>
             <input
+              id={shareLinkInputId}
               type="text"
               readOnly
               value={roomLink}
