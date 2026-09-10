@@ -60,7 +60,7 @@ Start the full app in the background:
 docker compose up -d
 ```
 
-Then open http://localhost:3000.
+Then open http://localhost:3000 by default.
 
 If you use the legacy Compose CLI, `docker-compose up -d` works with the included `docker-compose.yml` file.
 
@@ -69,6 +69,8 @@ To use a different host port:
 ```bash
 APP_PORT=4000 docker compose up -d
 ```
+
+Then open `http://localhost:4000`.
 
 Stop it with:
 
