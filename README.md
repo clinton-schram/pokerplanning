@@ -57,15 +57,17 @@ npm run build
 Start the full app in the background:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Then open http://localhost:3000.
 
+If you use the legacy Compose CLI, `docker-compose up -d` works with the included `docker-compose.yml` file.
+
 Stop it with:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ## Run with Docker
